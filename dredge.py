@@ -1,4 +1,7 @@
+from random import randint
+
 import pygame
+
 
 class PointSet(object):
 	def __init__(self, *args):
@@ -40,10 +43,13 @@ class PointSet(object):
 class Obstacle(object):
 	__slots__ = ("theta", "_ring", "_speed")
 	
-	def __init__(self, theta, ring, speed=2):
+	def __init__(self, theta, ring, speed=1):
 		self.theta = theta
 		self._ring = ring
 		self._speed = speed
+	
+	def __repr__(self):
+		return f"Obstacle({self.theta}, {self.ring}, {self.speed})"
 	
 	@property
 	def speed(self):
@@ -54,18 +60,65 @@ class Obstacle(object):
 		return self._ring
 		
 
-def generate_obstacles(difficulty):
-	spacing = 40
+def generate_obstacles() -> list[Obstacle]:
+	spacing = 35
 	# no obstacles in ring 1 with a start of more than 360-60 = 300 deg
-	space_before_first = 60
+	space_before_first = 80
+	
+	num = 9
+	rings = [[], []]
+	while len(rings[0]) + len(rings[1]) < num:
+		d = randint(0, 359)
+		r = randint(0, 1)
+		if r == 0 and d > 360 - space_before_first:
+			print("too close to start")
+			continue
+		
+		other_ring = 1 - r
+		
+		min_greater = rings[other_ring][0].theta if rings[other_ring] else 1000
+		max_less = rings[other_ring][0].theta if rings[other_ring] else 1000
+		for ob in rings[other_ring]:
+			if ob.theta > d and ob.theta < min_greater:
+				min_greater = ob.theta
+			
+			if ob.theta < d and ob.theta > max_less:
+				max_less = ob.theta
+		
+		if min_greater - d < spacing and d - max_less < spacing:
+			continue
+
+		rings[r].append(Obstacle(d, r+1))
+
+	rings[1].extend(rings[0])
+	print(rings[1])
+	return rings[1]
+
+
+def reasonable_patterns():
+	p = [
+		[Obstacle(123, 2, 2), Obstacle(58, 2, 2), Obstacle(248, 2, 2), Obstacle(306, 2, 2), Obstacle(172, 1, 2), Obstacle(77, 1, 2)],
+		[Obstacle(279, 2, 2), Obstacle(258, 2, 2), Obstacle(332, 2, 2), Obstacle(122, 2, 2), Obstacle(203, 1, 2), Obstacle(155, 1, 2)],
+		[Obstacle(172, 2, 1), Obstacle(290, 2, 1), Obstacle(259, 2, 1), Obstacle(84, 2, 1), Obstacle(33, 2, 1), Obstacle(121, 1, 1), Obstacle(245, 1, 1), Obstacle(100, 1, 1)],
+		[Obstacle(171, 2, 1), Obstacle(118, 2, 1), Obstacle(349, 2, 1), Obstacle(292, 2, 1), Obstacle(236, 1, 1), Obstacle(98, 1, 1), Obstacle(211, 1, 1), Obstacle(272, 1, 1), Obstacle(73, 1, 1)],
+		
+	]
+
 
 
 class Wheel(object):
 	def __init__(self):
-		self.obstacles = [
-			Obstacle(10, 1), Obstacle(180, 1), 
-			Obstacle(90, 2), Obstacle(140, 2), Obstacle(250, 2)
-		]
+		#self.obstacles = [
+		#	Obstacle(10, 1), Obstacle(180, 1), 
+		#	Obstacle(90, 2), Obstacle(140, 2), Obstacle(250, 2)
+		#]
+		
+		self.obstacles = []
+		ratio = 0
+		while not (.3 < ratio < .7):
+			self.obstacles = generate_obstacles()
+			ratio = len([o for o in self.obstacles if o.ring == 1]) / len(self.obstacles)
+		
 		self.size = 250
 		self.dist_from_edge = 20
 		
@@ -170,7 +223,7 @@ def main():
 		y=CENTER.y - wheel.size,
 		width=30,
 		height=2*wheel.size,
-		total=500
+		total=360 * 2  # 2 full flawless wheel turns
 	)
 
 
@@ -210,3 +263,6 @@ def main():
 
 if __name__ == "__main__":
 	main()
+	#for i in range(5):
+	#	print(generate_obstacles())
+
